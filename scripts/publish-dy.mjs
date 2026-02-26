@@ -104,6 +104,18 @@ function waitForEnter(prompt) {
     });
 }
 
+async function ensureUploadComposer(page) {
+    if (page.url().includes('/content/upload')) return;
+    try {
+        await page.evaluate(() => {
+            const btns = Array.from(document.querySelectorAll('button, a'));
+            const target = btns.find((el) => (el.textContent || '').includes('发布视频'));
+            if (target) target.click();
+        });
+        await sleep(3000);
+    } catch { }
+}
+
 // ─── 主流程 ───
 async function main() {
     // ═══ Step 1：初始化浏览器 ═══
@@ -136,6 +148,7 @@ async function main() {
             await page.goto(DY_PUBLISH_URL, { waitUntil: 'domcontentloaded' });
             await sleep(5000);
         }
+        await ensureUploadComposer(page);
         console.log('   ✅ 发布页已打开');
 
         // ═══ Step 3：上传视频 ═══
@@ -148,7 +161,17 @@ async function main() {
                 });
             });
             await sleep(1000);
-            await page.locator('input[type="file"]').first().setInputFiles(videoPath);
+            const candidates = ['input[type="file"]', 'input.accept[type="file"]'];
+            let uploaded = false;
+            for (const sel of candidates) {
+                const count = await page.locator(sel).count();
+                if (count > 0) {
+                    await page.locator(sel).first().setInputFiles(videoPath);
+                    uploaded = true;
+                    break;
+                }
+            }
+            if (!uploaded) throw new Error('找不到可用的上传 input');
             console.log('   ✅ 视频已上传');
         } catch (err) {
             console.log(`   ❌ 自动上传失败：${err.message.substring(0, 80)}`);
@@ -206,11 +229,12 @@ async function main() {
                 if (filled.ok) {
                     console.log('   ✅ 描述已填写');
                 } else {
-                    await stagehand.act(`在视频描述输入框中输入"${videoDesc}"`);
-                    console.log('   ✅ 描述已填写（AI 辅助）');
+                    console.log('   ⚠️ 未自动定位到描述框，请手动填写后按回车继续');
+                    await waitForEnter('   已填写描述后按回车...');
                 }
             } catch (err) {
                 console.log(`   ⚠️ 描述填写失败：${err.message.substring(0, 60)}`);
+                await waitForEnter('   请手动填写描述后按回车...');
             }
         } else {
             console.log('   跳过描述（未指定）');
@@ -218,10 +242,32 @@ async function main() {
 
         if (videoTitle) {
             try {
-                await stagehand.act(`在标题输入框中输入"${videoTitle}"`);
-                console.log('   ✅ 标题已填写');
+                const titleFilled = await page.evaluate((title) => {
+                    const selectors = [
+                        'input[placeholder*="标题"]',
+                        'textarea[placeholder*="标题"]',
+                        'input[maxlength]'
+                    ];
+                    for (const sel of selectors) {
+                        const el = document.querySelector(sel);
+                        if (el && el.offsetWidth > 0) {
+                            el.focus();
+                            el.value = title;
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                            return true;
+                        }
+                    }
+                    return false;
+                }, videoTitle);
+                if (titleFilled) {
+                    console.log('   ✅ 标题已填写');
+                } else {
+                    console.log('   ⚠️ 未自动定位到标题框，请手动填写后按回车继续');
+                    await waitForEnter('   已填写标题后按回车...');
+                }
             } catch (err) {
                 console.log(`   ⚠️ 标题填写失败：${err.message.substring(0, 60)}`);
+                await waitForEnter('   请手动填写标题后按回车...');
             }
         }
 
@@ -231,23 +277,32 @@ async function main() {
         console.log('\n📌 Step 5：点击发布...');
         try {
             const published = await page.evaluate(() => {
-                const btns = document.querySelectorAll('button');
-                for (const b of btns) {
-                    if (b.textContent?.trim() === '发布' && !b.disabled) {
-                        b.click();
-                        return true;
-                    }
+                const btns = Array.from(document.querySelectorAll('button'));
+                const visiblePublishBtns = btns.filter((b) => {
+                    const t = (b.textContent || '').trim();
+                    if (t !== '发布') return false;
+                    if (b.disabled) return false;
+                    const rect = b.getBoundingClientRect();
+                    if (rect.width < 40 || rect.height < 20) return false;
+                    if (rect.y < window.innerHeight * 0.25) return false;
+                    return true;
+                });
+                const target = visiblePublishBtns[0] || null;
+                if (target) {
+                    target.click();
+                    return true;
                 }
                 return false;
             });
             if (published) {
                 console.log('   ✅ 已点击发布');
             } else {
-                await stagehand.act('点击"发布"按钮');
-                console.log('   ✅ 已点击发布（AI 辅助）');
+                console.log('   ⚠️ 未定位到发布按钮，请手动点击发布后按回车继续');
+                await waitForEnter('   已点击发布后按回车...');
             }
         } catch (err) {
             console.log(`   ⚠️ ${err.message.substring(0, 80)}`);
+            await waitForEnter('   请手动点击发布后按回车...');
         }
 
         // 等待页面跳转
