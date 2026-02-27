@@ -13,6 +13,24 @@ description: 夜校短视频自动化产出 — 基于 Remotion 的竖屏短视�
 - Node.js >= 18
 - FFmpeg >= 4.0（用于音频转换和截帧验收）
 
+## 生产规则（2026-02 更新，强制）
+
+1. **素材选择**：默认从整个素材库随机抽取 3 条（不是前 3 条），并随机顺序。
+2. **素材裁剪**：每条素材随机裁剪 2~4 秒（源素材约 5 秒），起始时间随机。
+3. **字幕链路**：默认使用豆包 VC API（`submit/query`）生成字幕，不再默认用 Whisper。
+4. **质量闸门**：禁止占位素材/占位字幕。关键步骤失败时必须中止并报错，不得“先出片再补”。
+
+推荐脚本：
+
+```bash
+# 1) 随机选素材 + 随机裁剪 + 更新课程标签
+node scripts/prepare-assets.mjs
+
+# 2) 豆包 VC 字幕（需 VOLCANO_VC_APPID / VOLCANO_VC_TOKEN）
+ffmpeg -i public/voiceover.mp3 -ar 16000 -ac 1 public/voiceover.wav -y
+node scripts/transcribe-doubao-vc.mjs public/voiceover.wav public/captions.json
+```
+
 ## 何时使用此 Skill
 
 当用户需要：
