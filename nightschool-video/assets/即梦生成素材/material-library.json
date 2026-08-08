@@ -1,0 +1,265 @@
+{
+  "version": 1,
+  "courses": {
+    "乒乓球": [
+      {
+        "id": "乒乓球课-3671",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/乒乓球/乒乓球课-3671.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.432Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "书法": [
+      {
+        "id": "书法课-1493",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/书法/书法课-1493.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.410Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "吉他": [
+      {
+        "id": "吉他课-4814",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/吉他/吉他课-4814.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-21T01:29:04.550Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "声乐": [
+      {
+        "id": "声乐课-1422",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/声乐/声乐课-1422.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.479Z",
+        "lastUsedAt": "2026-04-19T07:16:46.748Z",
+        "useCount": 2,
+        "source": "legacy"
+      },
+      {
+        "id": "discovered-retry-声乐-seedance2",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/声乐/retry-声乐-seedance2.mp4",
+        "coverPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/声乐/retry-声乐-seedance2-cover.png",
+        "durationSec": 11.04,
+        "createdAt": "2026-04-16T15:08:13.849952Z",
+        "lastUsedAt": "2026-04-19T07:10:07.356Z",
+        "useCount": 2,
+        "source": "seedance2"
+      }
+    ],
+    "滑雪": [
+      {
+        "id": "滑雪课-3064",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/滑雪/滑雪课-3064.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.494Z",
+        "lastUsedAt": "2026-04-19T07:16:46.658Z",
+        "useCount": 2,
+        "source": "legacy"
+      },
+      {
+        "id": "discovered-retry-滑雪-seedance2",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/滑雪/retry-滑雪-seedance2.mp4",
+        "coverPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/滑雪/retry-滑雪-seedance2-cover.png",
+        "durationSec": 11.04,
+        "createdAt": "2026-04-16T15:01:59.099539Z",
+        "lastUsedAt": "2026-04-19T07:10:07.208Z",
+        "useCount": 2,
+        "source": "seedance2"
+      }
+    ],
+    "爵士舞": [
+      {
+        "id": "爵士舞课-7715",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/爵士舞/爵士舞课-7715.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-21T01:29:04.525Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "瑜伽": [
+      {
+        "id": "瑜伽课-9879",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/瑜伽/瑜伽课-9879.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.370Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "美妆": [
+      {
+        "id": "美妆课-3512",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/美妆/美妆课-3512.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-21T01:29:04.535Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "羽毛球": [
+      {
+        "id": "羽毛球课-9510",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/羽毛球/羽毛球课-9510.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.344Z",
+        "lastUsedAt": "2026-04-19T07:16:46.869Z",
+        "useCount": 2,
+        "source": "legacy"
+      },
+      {
+        "id": "discovered-retry-羽毛球-seedance2",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/羽毛球/retry-羽毛球-seedance2.mp4",
+        "coverPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/羽毛球/retry-羽毛球-seedance2-cover.png",
+        "durationSec": 11.04,
+        "createdAt": "2026-04-16T15:08:05.820460Z",
+        "lastUsedAt": "2026-04-19T07:10:07.551Z",
+        "useCount": 2,
+        "source": "seedance2"
+      }
+    ],
+    "舞蹈": [
+      {
+        "id": "舞蹈课-5854",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/舞蹈/舞蹈课-5854.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.445Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "视频剪辑": [
+      {
+        "id": "视频剪辑课-1214",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/视频剪辑/视频剪辑课-1214.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.561Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "通识": [
+      {
+        "id": "通识课-3975",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/通识/通识课-3975.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.515Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "钢琴": [
+      {
+        "id": "钢琴课-2653",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/legacy/钢琴/钢琴课-2653.mp4",
+        "coverPath": "",
+        "durationSec": 5.06,
+        "createdAt": "2026-02-22T02:32:43.540Z",
+        "lastUsedAt": "",
+        "useCount": 0,
+        "source": "legacy"
+      }
+    ],
+    "化妆": [
+      {
+        "id": "discovered-retry-化妆-seedance2",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/化妆/retry-化妆-seedance2.mp4",
+        "coverPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/化妆/retry-化妆-seedance2-cover.png",
+        "durationSec": 11.04,
+        "createdAt": "2026-04-16T15:06:21.856204Z",
+        "lastUsedAt": "2026-04-19T07:16:46.779Z",
+        "useCount": 4,
+        "source": "seedance2"
+      }
+    ],
+    "国画": [
+      {
+        "id": "discovered-retry-国画-seedance2",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/国画/retry-国画-seedance2.mp4",
+        "coverPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/国画/retry-国画-seedance2-cover.png",
+        "durationSec": 11.04,
+        "createdAt": "2026-04-16T15:06:39.713480Z",
+        "lastUsedAt": "2026-04-19T07:16:46.689Z",
+        "useCount": 4,
+        "source": "seedance2"
+      }
+    ],
+    "网球": [
+      {
+        "id": "discovered-retry-网球-seedance2",
+        "taskId": "",
+        "prompt": "",
+        "videoPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/网球/retry-网球-seedance2.mp4",
+        "coverPath": "./夜校视频自动产出/即梦生成素材/seedance2-generated/网球/retry-网球-seedance2-cover.png",
+        "durationSec": 11.04,
+        "createdAt": "2026-04-16T15:09:45.560092Z",
+        "lastUsedAt": "2026-04-19T07:16:46.810Z",
+        "useCount": 4,
+        "source": "seedance2"
+      }
+    ]
+  }
+}

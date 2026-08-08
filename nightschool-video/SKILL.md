@@ -7,6 +7,25 @@ description: 夜校短视频自动化产出 — 基于 Remotion 的竖屏短视�
 
 基于 Remotion 框架，自动化生成"杭州新青年夜校"品牌推广竖屏短视频。
 
+## 目录结构（本仓库自带素材，开箱即用）
+
+```
+nightschool-video/
+├── SKILL.md
+├── reference/            # 组件参考实现（Root.tsx / NightSchoolVideo.tsx / …）
+├── scripts/              # prepare-assets.mjs / transcribe-doubao-vc.mjs / fix-captions.mjs
+├── docs/                 # 版式验收规范、5.9 像素基线冻结规范
+└── assets/               # 全量生产素材（134M，随仓库一起 clone 下来即可用）
+    ├── 即梦生成素材/       # B-roll 视频池（含 legacy/、seedance2-generated/ 子集）
+    ├── 夜校配音文件/       # 19 条配音 mp3
+    ├── 夜校视频模板/       # 各账号剪映成片示例（杭州新青年夜校 / uu在徐州 / …）
+    ├── 参考源/             # 剪映 5.9 草稿 JSON + 版式规范 + 成品示例
+    ├── 提示词/             # 素材生成 / Remotion 编排提示词
+    └── font/XinQingNian.ttf  # 新青年体字体（标题/标签/水印必需）
+```
+
+`scripts/prepare-assets.mjs` 默认从 `assets/即梦生成素材/` 随机取材（可用 `NIGHTSCHOOL_ASSETS_DIR` 环境变量覆盖指向其他素材池）。
+
 ## 前置条件
 
 - **必须已安装 `remotion-best-practices` Skill**（提供 Remotion 通用 API 知识）
@@ -78,25 +97,21 @@ remotion-video/
 └── package.json
 ```
 
-### 3. 准备素材
+### 3. 准备素材（直接从本 Skill 的 `assets/` 取用，无需外部路径）
 
 ```bash
-# 复制配音
-cp /path/to/voiceover.mp3 public/voiceover.mp3
+# 复制配音（从 assets/夜校配音文件/ 任选一条）
+cp "<skill-dir>/assets/夜校配音文件/XXXX.mp3" public/voiceover.mp3
 
-# 转 WAV 用于 Whisper 转录
+# 转 WAV 用于转录
 ffmpeg -i public/voiceover.mp3 -ar 16000 -ac 1 public/voiceover.wav -y
-
-# 转录字幕
 node scripts/transcribe.mjs public/voiceover.wav public/captions.json
 
-# 复制 B-roll 素材
-cp /path/to/clip1.mp4 public/clip-makeup.mp4
-cp /path/to/clip2.mp4 public/clip-guitar.mp4
-cp /path/to/clip3.mp4 public/clip-jazz.mp4
+# 随机选 3 条 B-roll + 随机裁剪 2~4s（自动读取 assets/即梦生成素材/）
+node <skill-dir>/scripts/prepare-assets.mjs
 
 # 复制字体
-cp /path/to/XinQingNian.ttf public/
+cp "<skill-dir>/assets/font/XinQingNian.ttf" public/
 ```
 
 ### 4. 渲染

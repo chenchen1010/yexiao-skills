@@ -2,9 +2,11 @@
 import fs from 'fs';
 import path from 'path';
 import {execSync} from 'child_process';
+import {fileURLToPath} from 'url';
 
 const base = process.cwd();
-const srcDir = process.env.NIGHTSCHOOL_ASSETS_DIR || '/Users/aixd1/projects/夜校 openclaw 自动化拆解/夜校视频自动产出/即梦生成素材';
+const skillDir = path.dirname(path.dirname(fileURLToPath(import.meta.url))); // .../nightschool-video
+const srcDir = process.env.NIGHTSCHOOL_ASSETS_DIR || path.join(skillDir, 'assets/即梦生成素材');
 const publicDir = path.join(base, 'public');
 const videoTsx = path.join(base, 'src/NightSchoolVideo.tsx');
 
