@@ -104,6 +104,20 @@ function waitForEnter(prompt) {
     });
 }
 
+async function pageLooksLoggedOut(page) {
+    try {
+        return await page.evaluate(() => {
+            const text = document.body?.innerText || '';
+            return text.includes('扫码登录')
+                || text.includes('验证码登录')
+                || text.includes('登录/注册')
+                || text.includes('创作者登录');
+        });
+    } catch {
+        return false;
+    }
+}
+
 async function ensureUploadComposer(page) {
     if (page.url().includes('/content/upload')) return;
     try {
@@ -114,6 +128,266 @@ async function ensureUploadComposer(page) {
         });
         await sleep(3000);
     } catch { }
+}
+
+async function getActionFrames(page) {
+    const frames = page.frames().slice().reverse();
+    const scored = [];
+    for (const frame of frames) {
+        try {
+            const score = await frame.evaluate(() => {
+                const text = document.body?.innerText || '';
+                let s = 0;
+                if (location.href.includes('/content/upload')) s += 2;
+                if (text.includes('上传视频')) s += 3;
+                if (text.includes('点击上传')) s += 2;
+                if (text.includes('拖拽')) s += 1;
+                if (text.includes('发布视频')) s += 1;
+                if (document.querySelector('input[type="file"]')) s += 5;
+                if (document.querySelector('[class*="upload"], [class*="Upload"], [data-testid*="upload"]')) s += 2;
+                return s;
+            });
+            scored.push({ frame, score });
+        } catch {
+            scored.push({ frame, score: 0 });
+        }
+    }
+    return scored.sort((a, b) => b.score - a.score).map((item) => item.frame);
+}
+
+async function exposeFileInputsInFrames(page) {
+    for (const frame of await getActionFrames(page)) {
+        try {
+            await frame.evaluate(() => {
+                document.querySelectorAll('input[type="file"]').forEach((input) => {
+                    input.style.cssText = 'opacity:1!important;display:block!important;position:fixed!important;top:50px!important;left:50px!important;width:300px!important;height:100px!important;z-index:999999!important;';
+                });
+            });
+        } catch { }
+    }
+}
+
+async function setInputFilesInFrames(page, filePath) {
+    for (const frame of await getActionFrames(page)) {
+        for (const sel of [
+            'input[type="file"]',
+            'input.accept[type="file"]',
+            'input[accept*="video"]',
+            'input[accept*="mp4"]',
+        ]) {
+            try {
+                const locator = frame.locator(sel);
+                const count = await locator.count();
+                if (count > 0) {
+                    await locator.first().setInputFiles(filePath);
+                    return true;
+                }
+            } catch { }
+        }
+    }
+    return false;
+}
+
+async function clickUploadAffordanceInFrames(page, filePath) {
+    const hints = ['上传视频', '点击上传', '上传', '拖拽视频', '拖入视频', '选择视频', '本地上传', '发布视频'];
+    for (const frame of await getActionFrames(page)) {
+        try {
+            const hasCandidate = await frame.evaluate((texts) => {
+                const nodes = Array.from(document.querySelectorAll('button, a, div, span, label'));
+                return nodes.some((el) => {
+                    const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+                    if (!text) return false;
+                    if (!texts.some((t) => text.includes(t))) return false;
+                    const rect = el.getBoundingClientRect();
+                    return rect.width > 40 && rect.height > 20;
+                }) || !!document.querySelector('[class*="upload"], [class*="Upload"], [data-testid*="upload"]');
+            }, hints);
+            if (!hasCandidate) continue;
+
+            const chooserPromise = page.waitForEvent('filechooser', { timeout: 2500 }).catch(() => null);
+            const clicked = await frame.evaluate((texts) => {
+                const nodes = Array.from(document.querySelectorAll('button, a, div, span, label'));
+                const target = nodes.find((el) => {
+                    const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+                    if (!text) return false;
+                    if (!texts.some((t) => text.includes(t))) return false;
+                    const rect = el.getBoundingClientRect();
+                    return rect.width > 40 && rect.height > 20;
+                });
+                if (target) {
+                    target.click();
+                    return true;
+                }
+                const dropzone = document.querySelector('[class*="upload"], [class*="Upload"], [data-testid*="upload"]');
+                if (dropzone instanceof HTMLElement) {
+                    dropzone.click();
+                    return true;
+                }
+                return false;
+            }, hints);
+            if (!clicked) continue;
+
+            const chooser = await chooserPromise;
+            if (chooser) {
+                await chooser.setFiles(filePath);
+                return true;
+            }
+            await sleep(1000);
+        } catch { }
+    }
+    return false;
+}
+
+async function uploadVideoAuto(page, stagehand, filePath) {
+    const maxAttempts = 12;
+    for (let i = 1; i <= maxAttempts; i++) {
+        await ensureUploadComposer(page);
+        await exposeFileInputsInFrames(page);
+        await sleep(800);
+
+        if (await setInputFilesInFrames(page, filePath)) {
+            return { ok: true, method: 'input' };
+        }
+        if (await clickUploadAffordanceInFrames(page, filePath)) {
+            return { ok: true, method: 'filechooser' };
+        }
+
+        try {
+            await stagehand.act('click the video upload area or the button to upload a video file');
+            await sleep(1500);
+            if (await setInputFilesInFrames(page, filePath)) {
+                return { ok: true, method: 'act+input' };
+            }
+            if (await clickUploadAffordanceInFrames(page, filePath)) {
+                return { ok: true, method: 'act+filechooser' };
+            }
+        } catch { }
+
+        console.log(`   ⏳ 第 ${i}/${maxAttempts} 次自动定位上传入口未命中，继续重试...`);
+        await sleep(2000);
+    }
+    return { ok: false, method: 'none' };
+}
+
+async function isPublishReadyInFrames(page) {
+    for (const frame of await getActionFrames(page)) {
+        try {
+            const ready = await frame.evaluate(() => {
+                const btns = document.querySelectorAll('button');
+                for (const b of btns) {
+                    if (b.textContent?.trim() === '发布' && !b.disabled) return true;
+                }
+                return false;
+            });
+            if (ready) return true;
+        } catch { }
+    }
+    return false;
+}
+
+async function fillDescriptionInFrames(page, desc) {
+    for (const frame of await getActionFrames(page)) {
+        try {
+            const filled = await frame.evaluate((value) => {
+                const selectors = [
+                    '.notranslate[contenteditable="true"]',
+                    '[contenteditable="true"]',
+                    '.ql-editor',
+                    '.DraftEditor-root [contenteditable="true"]',
+                    'textarea',
+                ];
+                for (const sel of selectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.offsetWidth > 0) {
+                        el.focus();
+                        if (el.tagName === 'TEXTAREA') {
+                            el.value = value;
+                        } else {
+                            el.innerHTML = value;
+                        }
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        return { ok: true };
+                    }
+                }
+                return { ok: false };
+            }, desc);
+            if (filled?.ok) return true;
+        } catch { }
+    }
+    return false;
+}
+
+async function fillTitleInFrames(page, title) {
+    for (const frame of await getActionFrames(page)) {
+        try {
+            const filled = await frame.evaluate((value) => {
+                const selectors = [
+                    'input[placeholder*="标题"]',
+                    'textarea[placeholder*="标题"]',
+                    'input[maxlength]'
+                ];
+                for (const sel of selectors) {
+                    const el = document.querySelector(sel);
+                    if (el && el.offsetWidth > 0) {
+                        el.focus();
+                        el.value = value;
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                        return true;
+                    }
+                }
+                return false;
+            }, title);
+            if (filled) return true;
+        } catch { }
+    }
+    return false;
+}
+
+async function clickPublishInFrames(page) {
+    for (const frame of await getActionFrames(page)) {
+        try {
+            const published = await frame.evaluate(() => {
+                const btns = Array.from(document.querySelectorAll('button'));
+                const visiblePublishBtns = btns.filter((b) => {
+                    const t = (b.textContent || '').trim();
+                    if (t !== '发布') return false;
+                    if (b.disabled) return false;
+                    const rect = b.getBoundingClientRect();
+                    if (rect.width < 40 || rect.height < 20) return false;
+                    if (rect.y < window.innerHeight * 0.25) return false;
+                    return true;
+                });
+                const target = visiblePublishBtns[0] || null;
+                if (target) {
+                    target.click();
+                    return true;
+                }
+                return false;
+            });
+            if (published) return true;
+        } catch { }
+    }
+    return false;
+}
+
+async function clickConfirmPopupInFrames(page) {
+    for (const frame of await getActionFrames(page)) {
+        try {
+            const r = await frame.evaluate(() => {
+                const btns = document.querySelectorAll('button');
+                for (const b of btns) {
+                    const t = b.textContent?.trim();
+                    if (['确认', '确定', '我知道了', '知道了'].includes(t) && !b.disabled && b.offsetParent !== null) {
+                        b.click();
+                        return t;
+                    }
+                }
+                return null;
+            });
+            if (r) return r;
+        } catch { }
+    }
+    return null;
 }
 
 // ─── 主流程 ───
@@ -142,7 +416,7 @@ async function main() {
 
         // 检查是否需要登录
         const currentUrl = page.url();
-        if (currentUrl.includes('login') || currentUrl.includes('passport')) {
+        if (currentUrl.includes('login') || currentUrl.includes('passport') || await pageLooksLoggedOut(page)) {
             console.log('📱 需要登录，请在 Chromium 浏览器中用抖音 App 扫码登录...');
             await waitForEnter('   登录完成后按回车继续...');
             await page.goto(DY_PUBLISH_URL, { waitUntil: 'domcontentloaded' });
@@ -154,25 +428,9 @@ async function main() {
         // ═══ Step 3：上传视频 ═══
         console.log('\n📌 Step 3：上传视频...');
         try {
-            // 暴露隐藏的 file input
-            await page.evaluate(() => {
-                document.querySelectorAll('input[type="file"]').forEach(input => {
-                    input.style.cssText = 'opacity:1!important;display:block!important;position:fixed!important;top:50px!important;left:50px!important;width:300px!important;height:100px!important;z-index:999999!important;';
-                });
-            });
-            await sleep(1000);
-            const candidates = ['input[type="file"]', 'input.accept[type="file"]'];
-            let uploaded = false;
-            for (const sel of candidates) {
-                const count = await page.locator(sel).count();
-                if (count > 0) {
-                    await page.locator(sel).first().setInputFiles(videoPath);
-                    uploaded = true;
-                    break;
-                }
-            }
-            if (!uploaded) throw new Error('找不到可用的上传 input');
-            console.log('   ✅ 视频已上传');
+            const uploaded = await uploadVideoAuto(page, stagehand, videoPath);
+            if (!uploaded.ok) throw new Error('找不到可用的上传 input 或 filechooser');
+            console.log(`   ✅ 视频已上传（${uploaded.method}）`);
         } catch (err) {
             console.log(`   ❌ 自动上传失败：${err.message.substring(0, 80)}`);
             await waitForEnter('   请在浏览器中手动上传视频后按回车...');
@@ -185,13 +443,7 @@ async function main() {
             await sleep(5000);
             process.stdout.write(`\r   已等待 ${(i + 1) * 5} 秒...`);
             try {
-                const ready = await page.evaluate(() => {
-                    const btns = document.querySelectorAll('button');
-                    for (const b of btns) {
-                        if (b.textContent?.trim() === '发布' && !b.disabled) return true;
-                    }
-                    return false;
-                });
+                const ready = await isPublishReadyInFrames(page);
                 if (ready) { console.log('\n   ✅ 视频处理完成'); videoReady = true; break; }
             } catch { }
         }
@@ -202,31 +454,8 @@ async function main() {
 
         if (videoDesc) {
             try {
-                const filled = await page.evaluate((desc) => {
-                    const selectors = [
-                        '.notranslate[contenteditable="true"]',
-                        '[contenteditable="true"]',
-                        '.ql-editor',
-                        '.DraftEditor-root [contenteditable="true"]',
-                        'textarea',
-                    ];
-                    for (const sel of selectors) {
-                        const el = document.querySelector(sel);
-                        if (el && el.offsetWidth > 0) {
-                            el.focus();
-                            if (el.tagName === 'TEXTAREA') {
-                                el.value = desc;
-                            } else {
-                                el.innerHTML = desc;
-                            }
-                            el.dispatchEvent(new Event('input', { bubbles: true }));
-                            return { ok: true };
-                        }
-                    }
-                    return { ok: false };
-                }, videoDesc);
-
-                if (filled.ok) {
+                const filled = await fillDescriptionInFrames(page, videoDesc);
+                if (filled) {
                     console.log('   ✅ 描述已填写');
                 } else {
                     console.log('   ⚠️ 未自动定位到描述框，请手动填写后按回车继续');
@@ -242,23 +471,7 @@ async function main() {
 
         if (videoTitle) {
             try {
-                const titleFilled = await page.evaluate((title) => {
-                    const selectors = [
-                        'input[placeholder*="标题"]',
-                        'textarea[placeholder*="标题"]',
-                        'input[maxlength]'
-                    ];
-                    for (const sel of selectors) {
-                        const el = document.querySelector(sel);
-                        if (el && el.offsetWidth > 0) {
-                            el.focus();
-                            el.value = title;
-                            el.dispatchEvent(new Event('input', { bubbles: true }));
-                            return true;
-                        }
-                    }
-                    return false;
-                }, videoTitle);
+                const titleFilled = await fillTitleInFrames(page, videoTitle);
                 if (titleFilled) {
                     console.log('   ✅ 标题已填写');
                 } else {
@@ -276,24 +489,7 @@ async function main() {
         // ═══ Step 5：点击发布 ═══
         console.log('\n📌 Step 5：点击发布...');
         try {
-            const published = await page.evaluate(() => {
-                const btns = Array.from(document.querySelectorAll('button'));
-                const visiblePublishBtns = btns.filter((b) => {
-                    const t = (b.textContent || '').trim();
-                    if (t !== '发布') return false;
-                    if (b.disabled) return false;
-                    const rect = b.getBoundingClientRect();
-                    if (rect.width < 40 || rect.height < 20) return false;
-                    if (rect.y < window.innerHeight * 0.25) return false;
-                    return true;
-                });
-                const target = visiblePublishBtns[0] || null;
-                if (target) {
-                    target.click();
-                    return true;
-                }
-                return false;
-            });
+            const published = await clickPublishInFrames(page);
             if (published) {
                 console.log('   ✅ 已点击发布');
             } else {
@@ -313,17 +509,7 @@ async function main() {
                 break;
             }
             try {
-                const r = await page.evaluate(() => {
-                    const btns = document.querySelectorAll('button');
-                    for (const b of btns) {
-                        const t = b.textContent?.trim();
-                        if (['确认', '确定', '我知道了', '知道了'].includes(t) && !b.disabled && b.offsetParent !== null) {
-                            b.click();
-                            return t;
-                        }
-                    }
-                    return null;
-                });
+                const r = await clickConfirmPopupInFrames(page);
                 if (r) console.log(`   ✅ 已处理弹窗：「${r}」`);
             } catch { }
         }
