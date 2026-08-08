@@ -11,16 +11,34 @@ const videoTsx = path.join(base, 'src/NightSchoolVideo.tsx');
 const argCourses = process.argv.find((a) => a.startsWith('--courses='));
 const wanted = argCourses ? argCourses.slice('--courses='.length).split(',').map((s) => s.trim()).filter(Boolean) : null;
 
-const all = fs.readdirSync(srcDir).filter((f) => f.endsWith('.mp4'));
+const all = walk(srcDir).filter((f) => f.endsWith('.mp4'));
 if (all.length < 3) throw new Error('素材不足 3 条');
 
+function walk(dir) {
+  const entries = fs.readdirSync(dir, {withFileTypes: true});
+  const out = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walk(full));
+    else out.push(full);
+  }
+  return out;
+}
+
 function shuffle(arr) { const a=[...arr]; for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+
+function courseLabelFromFile(file) {
+  return path.basename(file).split('-')[0];
+}
 
 function pickThree() {
   if (wanted?.length) {
     const out = [];
     for (const c of wanted) {
-      const matches = all.filter((f) => f.startsWith(c + '-'));
+      const matches = all.filter((f) => {
+        const label = courseLabelFromFile(f);
+        return label === c || label === `${c}课`;
+      });
       if (!matches.length) throw new Error(`未找到课程素材: ${c}`);
       out.push(matches[Math.floor(Math.random() * matches.length)]);
       if (out.length === 3) break;
@@ -32,13 +50,12 @@ function pickThree() {
 }
 
 function getDurationSec(file) {
-  const full = path.join(srcDir, file);
-  const cmd = `ffprobe -v error -show_entries format=duration -of csv=p=0 ${JSON.stringify(full)}`;
+  const cmd = `ffprobe -v error -show_entries format=duration -of csv=p=0 ${JSON.stringify(file)}`;
   return parseFloat(execSync(cmd).toString().trim());
 }
 
 function cut(srcFile, targetFile) {
-  const srcFull = path.join(srcDir, srcFile);
+  const srcFull = srcFile;
   const outFull = path.join(publicDir, targetFile);
   const dur = getDurationSec(srcFile);
   const clipDur = 2 + Math.random() * 2; // 2-4s
@@ -50,7 +67,7 @@ function cut(srcFile, targetFile) {
 }
 
 const picked = pickThree();
-const labels = picked.map((f) => f.split('-')[0]);
+const labels = picked.map((f) => courseLabelFromFile(f));
 const targets = ['clip-makeup.mp4', 'clip-guitar.mp4', 'clip-jazz.mp4'];
 
 const trims = [];
