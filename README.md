@@ -50,13 +50,29 @@ node douyin-publish/scripts/publish-dy.mjs --video=/path/to/video.mp4 --desc="#�
 
 ## 在其他项目中引入
 
-```bash
-# 直接软链到本地 skills 目录
-ln -s /path/to/yexiao-skills/nightschool-video ~/.claude/skills/nightschool-video
-ln -s /path/to/yexiao-skills/remotion-best-practices ~/.claude/skills/remotion-best-practices
-ln -s /path/to/yexiao-skills/douyin-publish ~/.claude/skills/douyin-publish
-ln -s /path/to/yexiao-skills/wechat-channels-publish ~/.claude/skills/wechat-channels-publish
+仓库工作区是唯一维护源，Agent 的 skills 目录只放软链接，不复制真实文件。
+本机推荐把仓库放在：
+
+```text
+/Users/burning/Desktop/Code/yexiao-skills
 ```
+
+然后执行：
+
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+默认同步到：
+
+- `~/.codex/skills`
+- `~/.agents/skills`
+- `~/.claude/skills`
+- `~/.workbuddy/skills`（WorkBuddy 用户级 Skills）
+
+如果 WorkBuddy 使用其他目录，可通过 `WORKBUDDY_SKILLS_DIR` 覆盖。安装脚本不会
+覆盖真实目录；若已有可用的 `remotion-best-practices`，会保留现有版本。
 
 ## 私有仓库说明
 

@@ -1,0 +1,10 @@
+{
+  "name": "douyin-publish",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@browserbasehq/stagehand": "^3.1.0",
+    "dotenv": "^17.3.1"
+  }
+}

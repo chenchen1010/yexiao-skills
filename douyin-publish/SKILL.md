@@ -1,6 +1,13 @@
 ---
 name: douyin-publish
 description: 抖音自动发布 — 使用 Stagehand + Playwright 自动化上传视频、填写描述并发布到抖音创作者平台
+slug: yexiao-douyin-publish
+displayName: 抖音视频发布【星元科技·Firefly·出品】
+version: 1.0.0
+summary: 将本地视频上传到抖音创作者中心，填写标题和描述，并核验发布状态。
+license: MIT
+homepage: https://github.com/chenchen1010/yexiao-skills
+agent_created: true
 ---
 
 # 抖音自动发布 Skill

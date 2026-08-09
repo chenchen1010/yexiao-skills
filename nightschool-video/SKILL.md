@@ -1,11 +1,31 @@
 ---
 name: nightschool-video
 description: 夜校短视频自动化产出 — 基于 Remotion 的竖屏短视频生成全流程指南
+slug: nightschool-video
+displayName: 夜校短视频自动化产出【星元科技·Firefly·出品】
+version: 1.0.1
+summary: 用自带的夜校素材和 Remotion，快速生成带字幕、首帧封面和竖屏版式的课程宣传视频。
+license: MIT
+homepage: https://github.com/chenchen1010/yexiao-skills
+agent_created: true
 ---
 
 # 夜校短视频自动化产出 Skill
 
 基于 Remotion 框架，自动化生成"杭州新青年夜校"品牌推广竖屏短视频。
+
+## 获取完整素材库
+
+SkillHub 个人版上传包有体积和媒体格式限制，因此线上 Skill 包只保留流程、脚本和参考实现。
+完整视频、配音、字体和模板素材请从 GitHub 仓库获取：
+
+```bash
+git clone https://github.com/chenchen1010/yexiao-skills.git
+cd yexiao-skills/nightschool-video
+```
+
+仓库里的 `assets/` 是完整素材库，包含配音、B-roll、剪映参考成片、新闻通知类模板和字体。
+如果已经在本机安装过该 skill，优先使用本地路径 `/Users/burning/Desktop/Code/yexiao-skills/nightschool-video`。
 
 ## 目录结构（本仓库自带素材，开箱即用）
 
@@ -13,15 +33,17 @@ description: 夜校短视频自动化产出 — 基于 Remotion 的竖屏短视�
 nightschool-video/
 ├── SKILL.md
 ├── reference/            # 组件参考实现（Root.tsx / NightSchoolVideo.tsx / …）
+│   ├── FirstFrameCover.tsx # 抖音第 0 帧高信息封面覆盖
 ├── scripts/              # prepare-assets.mjs / transcribe-doubao-vc.mjs / fix-captions.mjs
 ├── docs/                 # 版式验收规范、5.9 像素基线冻结规范
 └── assets/               # 全量生产素材（134M，随仓库一起 clone 下来即可用）
     ├── 即梦生成素材/       # B-roll 视频池（含 legacy/、seedance2-generated/ 子集）
     ├── 夜校配音文件/       # 19 条配音 mp3
     ├── 夜校视频模板/       # 各账号剪映成片示例（杭州新青年夜校 / uu在徐州 / …）
+    ├── 新闻通知类模板/     # 7.38 秒新闻通知/课程公告参考成片（2 支）
     ├── 参考源/             # 剪映 5.9 草稿 JSON + 版式规范 + 成品示例
     ├── 提示词/             # 素材生成 / Remotion 编排提示词
-    └── font/XinQingNian.ttf  # 新青年体字体（标题/标签/水印必需）
+    └── font/               # 课程混剪用新青年体；新闻通知用 NotoSansHans-Bold
 ```
 
 `scripts/prepare-assets.mjs` 默认从 `assets/即梦生成素材/` 随机取材（可用 `NIGHTSCHOOL_ASSETS_DIR` 环境变量覆盖指向其他素材池）。
@@ -38,6 +60,7 @@ nightschool-video/
 2. **素材裁剪**：每条素材随机裁剪 2~4 秒（源素材约 5 秒），起始时间随机。
 3. **字幕链路**：默认使用豆包 VC API（`submit/query`）生成字幕，不再默认用 Whisper。
 4. **质量闸门**：禁止占位素材/占位字幕。关键步骤失败时必须中止并报错，不得“先出片再补”。
+5. **首帧封面**：第 0 帧必须冻结到模板配置的高信息密度帧；第 1 帧恢复原时间轴，禁止空标题、半入场字幕或黑帧作为抖音默认封面。
 
 推荐脚本：
 
@@ -143,6 +166,7 @@ text.defaults: {
 
 compositions: {
     voiceoverDurationSec: 11.42,  // ← 换配音时必须更新此值
+    coverFrame: 45,               // 第 0 帧取样来源：标题、标签、字幕完整
 }
 ```
 
@@ -363,10 +387,10 @@ Whisper 中文转录常见问题：
 
 ### 渲染后截帧验收
 
-在 0s、50%、末尾截帧：
+先严格提取编码后的第 0 帧，再检查 50% 和末尾：
 
 ```bash
-ffmpeg -i output.mp4 -ss 0.5 -frames:v 1 frame-0s.png -y
+ffmpeg -i output.mp4 -vf "select=eq(n\,0)" -vsync 0 -frames:v 1 frame-000.png -y
 ffmpeg -i output.mp4 -ss 5.5 -frames:v 1 frame-mid.png -y
 ffmpeg -i output.mp4 -ss 10.5 -frames:v 1 frame-end.png -y
 ```
@@ -385,6 +409,8 @@ ffmpeg -i output.mp4 -ss 10.5 -frames:v 1 frame-end.png -y
 □ 跑马字幕底部金黄色可见
 □ B-roll 有画面 + fade 转场
 □ 配音有声音
+□ 第 0 帧为高信息封面，主钩子、核心卖点和必要字幕均完整可读
+□ 第 1 帧恢复正常入场动画，音轨和总时长未被封面覆盖改变
 ```
 
 ---
@@ -434,4 +460,48 @@ node scripts/transcribe.mjs public/voiceover.wav public/captions.json
 npx remotion render NightSchoolVideo59Strict --output out/nightschool.mp4
 
 # 9. 截帧验收
+```
+
+---
+
+## 十、新闻通知类模板
+
+除课程 B-roll 混剪外，本 Skill 还提供独立的新闻通知类模板：
+
+- Composition ID：`NightSchoolNewsNotice`
+- 规格：1080×1920、30fps、约 7.4 秒
+- 参考成片：`assets/新闻通知类模板/` 中的两支视频
+- 参考实现：`reference/news-notice/src/`
+- 版式规范：`docs/新闻通知类模板规范.md`
+- 当前版式：`v2-news-notice-pixel-baseline`（主像素基线为第二支参考片）
+- 首帧取样：`NEWS_NOTICE_TEMPLATE.meta.coverFrame = 30`，覆盖仅作用于第 0 帧
+
+### 模板选择边界
+
+| 场景 | 使用模板 |
+|------|----------|
+| 展示课堂氛围、课程镜头、学员体验 | `NightSchoolVideo59Strict` 课程混剪 |
+| 发布报名通知、政策式公告、课程清单、覆盖区域 | `NightSchoolNewsNotice` 新闻通知 |
+
+### 信息结构
+
+```text
+城市 + 强提醒标题
+→ 发布主体/通知来源
+→ 本次开放内容
+→ 两行核心卖点黄卡
+→ 价格/价值条 + 课程内容
+→ 适合人群与覆盖区域
+→ CTA
+```
+
+城市、标题、课程、适合人群、覆盖区域和 CTA 必须在
+`newsNoticeTemplate.ts` 中集中配置，不得散落在组件里。长城市名或长标题需要自动降字号，
+所有动画必须由 `useCurrentFrame()` 驱动。
+
+两支现有参考视频的音轨未得到有效语音字幕，默认视为背景音乐参考，不强制生成逐字字幕；
+如果后续换成带旁白的音轨，仍必须走豆包 VC 转录和人工校对流程。
+
+```bash
+npx remotion render NightSchoolNewsNotice --output out/nightschool-news-notice.mp4
 ```

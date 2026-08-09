@@ -38,6 +38,8 @@ export const NIGHT_SCHOOL_59_BASELINE = {
         legacyCanvas: { width: 720, height: 1280 },
         voiceoverDurationSec: 11.42,
         templateRefDurationSec: 5.033333,
+        /** 主标题、课程标签与首屏字幕均完整显示的信息密集帧 */
+        coverFrame: 45,
     },
 
     // ===== 字体参数 =====

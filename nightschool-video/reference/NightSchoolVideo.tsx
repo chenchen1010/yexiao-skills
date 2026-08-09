@@ -30,13 +30,12 @@ import {
     CourseTag,
     BrandWatermark,
 } from "./JianyingLayout";
-import { NIGHT_SCHOOL_59_BASELINE } from "./presets/nightSchool59Baseline";
+import { FirstFrameCover } from "./FirstFrameCover";
+import { NIGHT_SCHOOL_59_BASELINE } from "./nightSchool59Baseline";
 
-// 3 段素材及对应的课程标签
 const CLIPS = ["clip-makeup.mp4", "clip-guitar.mp4", "clip-jazz.mp4"];
 const CLIP_LABELS = ["美妆课", "吉他课", "爵士舞课"];
 
-// 视频参数
 const VOICEOVER_DURATION_SEC =
     NIGHT_SCHOOL_59_BASELINE.compositions.voiceoverDurationSec;
 const TRANSITION_DURATION_SEC = 0.8;
@@ -45,54 +44,29 @@ const TRANSITION_COUNT = 2;
 const CLIP_DURATION_SEC =
     (VOICEOVER_DURATION_SEC + TRANSITION_COUNT * TRANSITION_DURATION_SEC) /
     CLIP_COUNT;
+const SOURCE_CLIP_DURATION_SEC = 4;
+const CLIP_PLAYBACK_RATE = SOURCE_CLIP_DURATION_SEC / CLIP_DURATION_SEC;
 
 const TEXT = NIGHT_SCHOOL_59_BASELINE.text.defaults;
 
-
-interface NightSchoolVideoProps {
+type NightSchoolVideoProps = {
     strict59?: boolean;
-}
+};
 
-export const NightSchoolVideo: React.FC<NightSchoolVideoProps> = ({
-    strict59 = false,
+type NightSchoolVisualsProps = {
+    strict59: boolean;
+    pages: ReturnType<typeof splitCaptionsIntoPages>;
+};
+
+const NightSchoolVisuals: React.FC<NightSchoolVisualsProps> = ({
+    strict59,
+    pages,
 }) => {
     const { fps } = useVideoConfig();
     const frame = useCurrentFrame();
-
-    // ===== 字幕加载 =====
-    const [captions, setCaptions] = useState<Caption[] | null>(null);
-    const { delayRender, continueRender, cancelRender } = useDelayRender();
-    const [handle] = useState(() => delayRender());
-
-    const fetchCaptions = useCallback(async () => {
-        try {
-            const response = await fetch(staticFile("captions.json"));
-            const data = await response.json();
-            setCaptions(data);
-            continueRender(handle);
-        } catch (e) {
-            cancelRender(e);
-        }
-    }, [continueRender, cancelRender, handle]);
-
-    useEffect(() => {
-        fetchCaptions();
-    }, [fetchCaptions]);
-
-    // ===== 手动字幕分页（每 12 个字一页） =====
-    const pages = useMemo(() => {
-        return splitCaptionsIntoPages(captions ?? [], 12);
-    }, [captions]);
-
-    // ===== 帧数计算 =====
     const clipFrames = Math.round(CLIP_DURATION_SEC * fps);
     const transitionFrames = Math.round(TRANSITION_DURATION_SEC * fps);
-
-    // 全局当前时间 (ms)
     const currentTimeMs = (frame / fps) * 1000;
-
-    if (!captions) return null;
-
     const globalFadeIn = strict59
         ? 1
         : interpolate(frame, [0, 0.3 * fps], [0, 1], {
@@ -106,12 +80,13 @@ export const NightSchoolVideo: React.FC<NightSchoolVideoProps> = ({
                 opacity: globalFadeIn,
             }}
         >
-            {/* ===== 1. 视频轨道（全部淡入淡出转场） ===== */}
             <TransitionSeries>
                 <TransitionSeries.Sequence durationInFrames={clipFrames}>
                     <Video
                         src={staticFile(CLIPS[0])}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        style={{ width: "100%", height: "100%" }}
+                        objectFit="cover"
+                        playbackRate={CLIP_PLAYBACK_RATE}
                         muted
                     />
                 </TransitionSeries.Sequence>
@@ -122,7 +97,9 @@ export const NightSchoolVideo: React.FC<NightSchoolVideoProps> = ({
                 <TransitionSeries.Sequence durationInFrames={clipFrames}>
                     <Video
                         src={staticFile(CLIPS[1])}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        style={{ width: "100%", height: "100%" }}
+                        objectFit="cover"
+                        playbackRate={CLIP_PLAYBACK_RATE}
                         muted
                     />
                 </TransitionSeries.Sequence>
@@ -133,14 +110,13 @@ export const NightSchoolVideo: React.FC<NightSchoolVideoProps> = ({
                 <TransitionSeries.Sequence durationInFrames={clipFrames}>
                     <Video
                         src={staticFile(CLIPS[2])}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        style={{ width: "100%", height: "100%" }}
+                        objectFit="cover"
+                        playbackRate={CLIP_PLAYBACK_RATE}
                         muted
                     />
                 </TransitionSeries.Sequence>
             </TransitionSeries>
-
-            {/* ===== 2. 配音 ===== */}
-            <Audio src={staticFile("voiceover.mp3")} volume={0.9} />
 
             <JianyingHeader
                 title1={TEXT.title1}
@@ -151,42 +127,38 @@ export const NightSchoolVideo: React.FC<NightSchoolVideoProps> = ({
             />
             <BrandWatermark />
 
-            {CLIP_LABELS.map((label, i) => {
+            {CLIP_LABELS.map((label, index) => {
                 const clipStart = Math.round(
-                    i * clipFrames - i * transitionFrames
+                    index * clipFrames - index * transitionFrames
                 );
                 return (
                     <Sequence
                         key={label}
                         from={Math.max(0, clipStart)}
                         durationInFrames={clipFrames}
+                        premountFor={fps}
                     >
                         <CourseTag label={label} />
                     </Sequence>
                 );
             })}
 
-            <StudentLabel
-                strict59={strict59}
-                text={TEXT.studentLabel}
-            />
-            <CourseList
-                strict59={strict59}
-                courses={TEXT.courseList}
-            />
+            <StudentLabel strict59={strict59} text={TEXT.studentLabel} />
+            <CourseList strict59={strict59} courses={TEXT.courseList} />
 
             <AbsoluteFill>
                 {pages.map((page, index) => {
                     const startFrame = Math.round((page.startMs / 1000) * fps);
                     const endFrame = Math.round((page.endMs / 1000) * fps);
-                    const dur = endFrame - startFrame;
-                    if (dur <= 0) return null;
+                    const durationInFrames = endFrame - startFrame;
+                    if (durationInFrames <= 0) return null;
 
                     return (
                         <Sequence
                             key={index}
                             from={startFrame}
-                            durationInFrames={dur}
+                            durationInFrames={durationInFrames}
+                            premountFor={fps}
                         >
                             <CaptionPage
                                 page={page}
@@ -197,6 +169,48 @@ export const NightSchoolVideo: React.FC<NightSchoolVideoProps> = ({
                     );
                 })}
             </AbsoluteFill>
+        </AbsoluteFill>
+    );
+};
+
+export const NightSchoolVideo: React.FC<NightSchoolVideoProps> = ({
+    strict59 = false,
+}) => {
+    const [captions, setCaptions] = useState<Caption[] | null>(null);
+    const { delayRender, continueRender, cancelRender } = useDelayRender();
+    const [handle] = useState(() => delayRender());
+
+    const fetchCaptions = useCallback(async () => {
+        try {
+            const response = await fetch(staticFile("captions.json"));
+            const data = await response.json();
+            setCaptions(data);
+            continueRender(handle);
+        } catch (error) {
+            cancelRender(error);
+        }
+    }, [continueRender, cancelRender, handle]);
+
+    useEffect(() => {
+        fetchCaptions();
+    }, [fetchCaptions]);
+
+    const pages = useMemo(
+        () => splitCaptionsIntoPages(captions ?? [], 12),
+        [captions]
+    );
+
+    if (!captions) return null;
+
+    return (
+        <AbsoluteFill style={{ backgroundColor: "black" }}>
+            <Audio src={staticFile("voiceover.mp3")} volume={0.9} />
+            <NightSchoolVisuals strict59={strict59} pages={pages} />
+            <FirstFrameCover
+                sourceFrame={NIGHT_SCHOOL_59_BASELINE.compositions.coverFrame}
+            >
+                <NightSchoolVisuals strict59={strict59} pages={pages} />
+            </FirstFrameCover>
         </AbsoluteFill>
     );
 };
